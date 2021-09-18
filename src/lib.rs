@@ -48,60 +48,8 @@ fn is_promise_success() -> bool {
 
 #[near_bindgen]
 impl LinkDrop {
-    /// Allows given public key to claim sent balance.
-    /// Takes ACCESS_KEY_ALLOWANCE as fee from deposit to cover account creation via an access key.
-    // self : this contract
-    // public_key : implicit account public key
-    // env::current_account_id() : this contract id
-    // env::attached_deposit() : front function_call send deposit
     #[payable]
-    pub fn send(&mut self, public_key: Base58PublicKey) -> Promise {
-        assert!(
-            env::attached_deposit() > ACCESS_KEY_ALLOWANCE,
-            "Attached deposit must be greater than ACCESS_KEY_ALLOWANCE"
-        );
-        let pk = public_key.into();
-        let value = self.accounts.get(&pk).unwrap_or(0);
-        self.accounts.insert(
-            &pk,
-            &(value + env::attached_deposit() - ACCESS_KEY_ALLOWANCE),
-        );
-        Promise::new(env::current_account_id()).add_access_key(
-            pk,
-            ACCESS_KEY_ALLOWANCE,
-            env::current_account_id(),
-            b"claim,create_account_and_claim".to_vec(),
-        )
-    }
-
-    /// Claim tokens for specific account that are attached to the public key this tx is signed with.
-    // account_id : receiver id
-    // env::signer_account_pk() : implicit account public key
-    // env::current_account_id() : this contract id
-    pub fn claim(&mut self, account_id: AccountId) -> Promise {
-        assert_eq!(
-            env::predecessor_account_id(),
-            env::current_account_id(),
-            "Claim only can come from this account"
-        );
-        assert!(
-            env::is_valid_account_id(account_id.as_bytes()),
-            "Invalid account id"
-        );
-        let amount = self
-            .accounts
-            .remove(&env::signer_account_pk())
-            .expect("Unexpected public key");
-        Promise::new(env::current_account_id()).delete_key(env::signer_account_pk());
-        Promise::new(account_id).transfer(amount)
-    }
-
-    // self : this contract
-    // public_key : implicit account public key
-    // env::current_account_id() : this contract id
-    // env::attached_deposit() : front function_call send deposit
-    #[payable]
-    pub fn send_nft(&mut self, public_key: Base58PublicKey, contract_name: String, nft_id: String, key_pair_id: String) -> Promise {
+    pub fn send(&mut self, public_key: Base58PublicKey, nft_id: String) -> Promise {
         assert!(
             env::attached_deposit() > ACCESS_KEY_ALLOWANCE,
             "Attached deposit must be greater than ACCESS_KEY_ALLOWANCE"
@@ -111,38 +59,18 @@ impl LinkDrop {
             &pk,
             &nft_id,
         );
-        let contract_name_clone = contract_name.clone();
         
         Promise::new(env::current_account_id()).add_access_key(
             pk,
             ACCESS_KEY_ALLOWANCE,
             env::current_account_id(),
-            b"claim_nft,create_account_and_claim".to_vec(),
-        );
-        Promise::new(contract_name).function_call(
-            b"nft_approve".to_vec(),
-            format!(
-                "{{\"account_id\": \"{}\", \"token_id\": \"{}\"}}",
-                env::current_account_id(),
-                nft_id
-            )
-            .into_bytes(),
-            1,
-            NFT_TRANSFER_GAS,
-        );
-
-        Promise::new(contract_name_clone).function_call(
-            b"nft_transfer".to_vec(), 
-            format!("{{\"receiver_id\": \"{}\", \"token_id\": \"{}\"}}", key_pair_id, nft_id).into_bytes(), 
-            1, 
-            NFT_TRANSFER_GAS,
+            b"claim,create_account_and_claim".to_vec(),
         )
     }
 
-    // account_id : receiver id
-    // env::signer_account_pk() : implicit account public key
-    // env::current_account_id() : this contract id
-    pub fn claim_nft(&mut self, account_id: AccountId, contract_name: String) -> Promise {
+    pub fn claim(&mut self, account_id: AccountId) -> Promise {
+        let nft_contract_name: String = String::from("nft_mint_test.testnet");
+
         assert_eq!(
             env::predecessor_account_id(),
             env::current_account_id(),
@@ -159,7 +87,7 @@ impl LinkDrop {
             .expect("Unexpected public key");
 
         Promise::new(env::current_account_id()).delete_key(env::signer_account_pk());
-        Promise::new(contract_name).function_call(
+        Promise::new(nft_contract_name).function_call(
             b"nft_transfer".to_vec(), 
             format!("{{\"receiver_id\": \"{}\", \"token_id\": \"{}\"}}", account_id, nft_id).into_bytes(), 
             1, 
@@ -182,10 +110,14 @@ impl LinkDrop {
             env::is_valid_account_id(new_account_id.as_bytes()),
             "Invalid account id"
         );
+
+        // contract amount 
         let amount = self
             .accounts
             .remove(&env::signer_account_pk())
             .expect("Unexpected public key");
+
+
         Promise::new(new_account_id)
             .create_account()
             .add_full_access_key(new_public_key.into())
@@ -257,8 +189,8 @@ impl LinkDrop {
     }
 
     /// Returns the balance associated with given key.
-    pub fn get_key_balance(&self, key: Base58PublicKey) -> U128 {
-        self.accounts.get(&key.into()).expect("Key is missing").into()
+    pub fn get_key_balance(&self, key: Base58PublicKey) -> String {
+        self.nft_accounts.get(&key.into()).expect("Key is missing").into()
     }
 }
 
