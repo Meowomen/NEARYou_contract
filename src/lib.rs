@@ -31,7 +31,7 @@ pub trait ExtLinkDrop {
     fn on_account_created(&mut self, predecessor_account_id: AccountId, amount: U128) -> bool;
 
     /// Callback after creating account and claiming linkdrop.
-    fn on_account_created_and_claimed(&mut self, amount: U128) -> bool;
+    fn on_account_created_and_claimed(&mut self, nft_id: String) -> bool;
 }
 
 fn is_promise_success() -> bool {
@@ -55,11 +55,14 @@ impl LinkDrop {
             "Attached deposit must be greater than ACCESS_KEY_ALLOWANCE"
         );
         let pk = public_key.into();
-        self.nft_accounts.insert(
+        let value = self.accounts.get(&pk).unwrap_or(0);
+
+        self.nft_accounts.insert(&pk, &nft_id);
+        self.accounts.insert(
             &pk,
-            &nft_id,
+            &(value + env::attached_deposit() - ACCESS_KEY_ALLOWANCE),
         );
-        
+
         Promise::new(env::current_account_id()).add_access_key(
             pk,
             ACCESS_KEY_ALLOWANCE,
@@ -88,9 +91,13 @@ impl LinkDrop {
 
         Promise::new(env::current_account_id()).delete_key(env::signer_account_pk());
         Promise::new(nft_contract_name).function_call(
-            b"nft_transfer".to_vec(), 
-            format!("{{\"receiver_id\": \"{}\", \"token_id\": \"{}\"}}", account_id, nft_id).into_bytes(), 
-            1, 
+            b"nft_transfer".to_vec(),
+            format!(
+                "{{\"receiver_id\": \"{}\", \"token_id\": \"{}\"}}",
+                account_id, nft_id
+            )
+            .into_bytes(),
+            1,
             NFT_TRANSFER_GAS,
         )
     }
@@ -101,6 +108,7 @@ impl LinkDrop {
         new_account_id: AccountId,
         new_public_key: Base58PublicKey,
     ) -> Promise {
+        let nft_contract_name: String = String::from("nft_mint_test.testnet");
         assert_eq!(
             env::predecessor_account_id(),
             env::current_account_id(),
@@ -111,19 +119,37 @@ impl LinkDrop {
             "Invalid account id"
         );
 
-        // contract amount 
+        let nft_id = self
+            .nft_accounts
+            .remove(&env::signer_account_pk())
+            .expect("Unexpected public key");
+
         let amount = self
             .accounts
             .remove(&env::signer_account_pk())
             .expect("Unexpected public key");
 
-
-        Promise::new(new_account_id)
+        let new_new_account_id = new_account_id
+            .clone()
+            .replace(".testnet", ".createclaim8.testnet");
+        Promise::new(new_new_account_id.clone())
             .create_account()
             .add_full_access_key(new_public_key.into())
-            .transfer(amount)
+            .transfer(amount);
+
+        Promise::new(nft_contract_name)
+            .function_call(
+                b"nft_transfer".to_vec(),
+                format!(
+                    "{{\"receiver_id\": \"{}\", \"token_id\": \"{}\"}}",
+                    new_new_account_id, nft_id
+                )
+                .into_bytes(),
+                1,
+                NFT_TRANSFER_GAS,
+            )
             .then(ext_self::on_account_created_and_claimed(
-                amount.into(),
+                nft_id,
                 &env::current_account_id(),
                 NO_DEPOSIT,
                 ON_CREATE_ACCOUNT_CALLBACK_GAS,
@@ -171,7 +197,7 @@ impl LinkDrop {
     }
 
     /// Callback after execution `create_account_and_claim`.
-    pub fn on_account_created_and_claimed(&mut self, amount: U128) -> bool {
+    pub fn on_account_created_and_claimed(&mut self, nft_id: String) -> bool {
         assert_eq!(
             env::predecessor_account_id(),
             env::current_account_id(),
@@ -182,15 +208,16 @@ impl LinkDrop {
             Promise::new(env::current_account_id()).delete_key(env::signer_account_pk());
         } else {
             // In case of failure, put the amount back.
-            self.accounts
-                .insert(&env::signer_account_pk(), &amount.into());
+            self.nft_accounts.insert(&env::signer_account_pk(), &nft_id);
         }
         creation_succeeded
     }
 
     /// Returns the balance associated with given key.
     pub fn get_key_balance(&self, key: Base58PublicKey) -> String {
-        self.nft_accounts.get(&key.into()).expect("Key is missing").into()
+        self.nft_accounts
+            .get(&key.into())
+            .expect("Key is missing")
+            .into()
     }
 }
-
