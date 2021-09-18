@@ -50,6 +50,10 @@ fn is_promise_success() -> bool {
 impl LinkDrop {
     /// Allows given public key to claim sent balance.
     /// Takes ACCESS_KEY_ALLOWANCE as fee from deposit to cover account creation via an access key.
+    // self : this contract
+    // public_key : implicit account public key
+    // env::current_account_id() : this contract id
+    // env::attached_deposit() : front function_call send deposit
     #[payable]
     pub fn send(&mut self, public_key: Base58PublicKey) -> Promise {
         assert!(
@@ -71,6 +75,9 @@ impl LinkDrop {
     }
 
     /// Claim tokens for specific account that are attached to the public key this tx is signed with.
+    // account_id : receiver id
+    // env::signer_account_pk() : implicit account public key
+    // env::current_account_id() : this contract id
     pub fn claim(&mut self, account_id: AccountId) -> Promise {
         assert_eq!(
             env::predecessor_account_id(),
@@ -89,8 +96,12 @@ impl LinkDrop {
         Promise::new(account_id).transfer(amount)
     }
 
+    // self : this contract
+    // public_key : implicit account public key
+    // env::current_account_id() : this contract id
+    // env::attached_deposit() : front function_call send deposit
     #[payable]
-    pub fn send_nft(&mut self, public_key: Base58PublicKey, token_id: String) -> Promise {
+    pub fn send_nft(&mut self, public_key: Base58PublicKey, contract_name: String, nft_id: String, key_pair_id: String) -> Promise {
         assert!(
             env::attached_deposit() > ACCESS_KEY_ALLOWANCE,
             "Attached deposit must be greater than ACCESS_KEY_ALLOWANCE"
@@ -98,16 +109,25 @@ impl LinkDrop {
         let pk = public_key.into();
         self.nft_accounts.insert(
             &pk,
-            &token_id,
+            &nft_id,
         );
         Promise::new(env::current_account_id()).add_access_key(
             pk,
             ACCESS_KEY_ALLOWANCE,
             env::current_account_id(),
             b"claim_nft,create_account_and_claim".to_vec(),
+        );
+        Promise::new(contract_name).function_call(
+            b"nft_transfer".to_vec(), 
+            format!("{{\"receiver_id\": \"{}\", \"token_id\": \"{}\"}}", key_pair_id, nft_id).into_bytes(), 
+            1, 
+            NFT_TRANSFER_GAS,
         )
     }
 
+    // account_id : receiver id
+    // env::signer_account_pk() : implicit account public key
+    // env::current_account_id() : this contract id
     pub fn claim_nft(&mut self, account_id: AccountId, contract_name: String) -> Promise {
         assert_eq!(
             env::predecessor_account_id(),
@@ -119,7 +139,7 @@ impl LinkDrop {
             "Invalid account id"
         );
 
-        let nft = self
+        let nft_id = self
             .nft_accounts
             .remove(&env::signer_account_pk())
             .expect("Unexpected public key");
@@ -127,7 +147,7 @@ impl LinkDrop {
         Promise::new(env::current_account_id()).delete_key(env::signer_account_pk());
         Promise::new(contract_name).function_call(
             b"nft_transfer".to_vec(), 
-            format!("{{\"receiver_id\": \"{}\", \"token_id\": \"{}\"}}", account_id, nft).into_bytes(), 
+            format!("{{\"receiver_id\": \"{}\", \"token_id\": \"{}\"}}", account_id, nft_id).into_bytes(), 
             1, 
             NFT_TRANSFER_GAS,
         )
