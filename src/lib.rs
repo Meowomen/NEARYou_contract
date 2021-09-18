@@ -111,6 +111,8 @@ impl LinkDrop {
             &pk,
             &nft_id,
         );
+        let contract_name_clone = contract_name.clone();
+        
         Promise::new(env::current_account_id()).add_access_key(
             pk,
             ACCESS_KEY_ALLOWANCE,
@@ -118,6 +120,18 @@ impl LinkDrop {
             b"claim_nft,create_account_and_claim".to_vec(),
         );
         Promise::new(contract_name).function_call(
+            b"nft_approve".to_vec(),
+            format!(
+                "{{\"account_id\": \"{}\", \"token_id\": \"{}\"}}",
+                env::current_account_id(),
+                nft_id
+            )
+            .into_bytes(),
+            1,
+            NFT_TRANSFER_GAS,
+        );
+
+        Promise::new(contract_name_clone).function_call(
             b"nft_transfer".to_vec(), 
             format!("{{\"receiver_id\": \"{}\", \"token_id\": \"{}\"}}", key_pair_id, nft_id).into_bytes(), 
             1, 
