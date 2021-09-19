@@ -20,14 +20,14 @@ enum StorageKey {
 }
 
 /// Access key allowance for linkdrop keys.
-const ACCESS_KEY_ALLOWANCE: u128 = 1_000_000_000_000_000_000_000_000;
+pub const ACCESS_KEY_ALLOWANCE: u128 = 1_000_000_000_000_000_000_000_000;
 
-/// Gas attached to the callback from account creation.
+/// Gas attached to the functionCall.
 pub const ON_CREATE_ACCOUNT_CALLBACK_GAS: Gas = Gas(20_000_000_000_000);
+pub const NFT_TRANSFER_GAS: Gas = Gas(20_000_000_000_000);
 
 /// Indicates there are no deposit for a callback for better readability.
-const NO_DEPOSIT: u128 = 0;
-const NFT_TRANSFER_GAS: Gas = Gas(20_000_000_000_000);
+pub const NO_DEPOSIT: u128 = 0;
 
 #[ext_contract(ext_self)]
 pub trait ExtLinkDrop {
@@ -49,6 +49,7 @@ fn is_promise_success() -> bool {
 
 #[near_bindgen]
 impl NearYou {
+    /// Initialize contract with an account that minted NFT.
     #[init]
     pub fn new(nft_contract: AccountId) -> Self {
         Self {
@@ -58,12 +59,14 @@ impl NearYou {
         }
     }
 
+    /// Map public_key with nft_id & balance to make a promise call.
     #[payable]
     pub fn send(&mut self, public_key: PublicKey, nft_id: String) -> Promise {
         assert!(
             env::attached_deposit() > ACCESS_KEY_ALLOWANCE,
             "Attached deposit must be greater than ACCESS_KEY_ALLOWANCE"
         );
+
         let pk = public_key.into();
         let value = self.accounts.get(&pk).unwrap_or(0);
 
@@ -73,6 +76,7 @@ impl NearYou {
             &(value + env::attached_deposit() - ACCESS_KEY_ALLOWANCE),
         );
 
+        /// Add access key to the contract.
         Promise::new(env::current_account_id()).add_access_key(
             pk,
             ACCESS_KEY_ALLOWANCE,
@@ -81,6 +85,7 @@ impl NearYou {
         )
     }
 
+    /// Claim NFT to existing account.
     pub fn claim(&mut self, account_id: AccountId) -> Promise {
         assert_eq!(
             env::predecessor_account_id(),
@@ -110,7 +115,7 @@ impl NearYou {
         )
     }
 
-    /// Create new account and and claim tokens to it.
+    /// Create new account and and claim NFT to it.
     pub fn create_account_and_claim(
         &mut self,
         new_account_id: AccountId,
@@ -130,22 +135,23 @@ impl NearYou {
             .nft_accounts
             .remove(&env::signer_account_pk())
             .expect("Unexpected public key");
-
         let amount = self
             .accounts
             .remove(&env::signer_account_pk())
             .expect("Unexpected public key");
 
+        /// Modify new_account_id from wallet to create subAccount of the sender.
         let nft_contract = format!(".{}", &env::current_account_id());
         let new_new_account_id = new_account_id
             .clone()
             .to_string()
             .replace(".testnet", &nft_contract);
+
+        /// Create subAccount of the sender.
         Promise::new(AccountId::new_unchecked(new_new_account_id.clone()))
             .create_account()
             .add_full_access_key(new_public_key.into())
             .transfer(amount);
-
         Promise::new(self.nft_contract.clone())
             .function_call(
                 (&"nft_transfer").to_string(),
@@ -172,6 +178,7 @@ impl NearYou {
             env::current_account_id(),
             "Callback can only be called from the contract"
         );
+
         let creation_succeeded = is_promise_success();
         if creation_succeeded {
             Promise::new(env::current_account_id()).delete_key(env::signer_account_pk());
@@ -182,7 +189,7 @@ impl NearYou {
         creation_succeeded
     }
 
-    /// Returns the balance associated with given key.
+    /// Returns the nft_id associated with given key.
     pub fn get_key_balance(&self, key: PublicKey) -> String {
         self.nft_accounts
             .get(&key.into())
