@@ -1,9 +1,60 @@
 # NEARYou Contract
-## About NEARYou
 
+## 🗝 Table of Contents
+- [About NEARYou](https://github.com/Meowomen/NEARYou_contract#-about-nearyou)
+- [Getting Started](https://github.com/Meowomen/NEARYou_contract#%EF%B8%8F-getting-started)
+- [How NEARYou Demo Works](https://github.com/Meowomen/NEARYou_contract#-how-nearyou-contract-works)
+  - [Features](https://github.com/Meowomen/NEARYou_contract#features)
+  - [send()](https://github.com/Meowomen/NEARYou_contract#send)
+  - [claim()](https://github.com/Meowomen/NEARYou_contract#claim)
+  - [create_account_and_claim()](https://github.com/Meowomen/NEARYou_contract#create_account_and_claim)
+- [Suggestions](https://github.com/Meowomen/NEARYou_contract#-suggestions)
+
+## 🔎 About NEARYou
+
+### For [2021 NEAR MetaBUIDL Hackathon](https://near.org/metabuidl)
 NEARYou allows NEAR wallet users(sender) to create a link for gifting their NFTs(Non-Fungible-Token) which follow [NEP-171](https://github.com/near/NEPs/blob/ea409f07f8/specs/Standards/NonFungibleToken/Core.md) standard. The user's friends(receiver) can claim NFT through the link. NEARYou contract stores the sender's NFT ``token_id`` and minimum amount of NEAR to activate new account.
 
-## How NEARYou Works
+### Contributors
+- [Juyeon Lee](https://github.com/kwklly) | Ewha Womans University
+- [Seungwon Choi](https://github.com/seungwon2) | Ewha Womans University
+- [Heesung Bae](https://github.com/HeesungB) | DSRV
+
+## 🏃‍♀️ Getting Started
+
+Clone this repository
+
+```bash
+git clone https://github.com/Meowomen/NEARYou_contract
+cd NEARYou_contract
+```
+
+Compile Contract code
+
+```bash
+cargo build --target wasm32-unknown-unknown --release
+```
+
+Deploy Contract
+
+```jsx
+near deploy --wasmFile target/wasm32-unknown-unknown/release/nearyou.wasm --accountId YOUR_ACCOUNT_HERE
+```
+- Otherwise, you can skip the previous step(Compile) and deploy [``nearyou.wasm``](https://github.com/Meowomen/NEARYou_contract/blob/master/res/nearyou.wasm) directly.
+
+Init Contract
+
+```bash
+near call YOUR_ACCOUNT new '{"nft_contract":"NFT_MINTED_CONTRACT"}' --accountId SIGNER_ACCOUNT
+```
+- ``NFT_MINTED_CONTRACT`` means an account that minted your NFT
+
+After deploying, you can use NEARYou contract with your account id in the [demo page](https://github.com/Meowomen/NEARYou/blob/master/README.md#modify-configjs).
+
+
+## 🎨 How NEARYou Contract Works
+
+### Features
 
 Sender, who owns NFT:
 
@@ -21,9 +72,9 @@ Receiver, who has NEAR wallet account:
 - Call `claim` function of contract with private key.
 - `claim` function calls `nft_transfer` function of ``NFT_MINTED_CONTRACT`` to give sender's NFT to receiver.
 
-### Code
+- - - 
 
-#### **send()**
+### **send()**
 
 ```rust
 #[payable]
@@ -53,7 +104,9 @@ Receiver, who has NEAR wallet account:
 - Inserts [public key, nft_id] pair and [public key, amount] pair into the ``accounts``, ``nft_accounts`` respectively.
 - Make promise and add an access key to NEARYou contract.
 
-#### **claim()**
+- - - 
+
+### **claim()**
 
 ```rust
 pub fn claim(&mut self, account_id: AccountId) -> Promise {
@@ -89,7 +142,9 @@ pub fn claim(&mut self, account_id: AccountId) -> Promise {
 - Get `nft_id` from ``nft_accounts`` map.
 - Call `nft_transfer()` from ``NFT_MINTED_CONTRACT``.
 
-#### **create_account_and_claim()**
+- - - 
+
+### **create_account_and_claim()**
 
 ```rust
 pub fn create_account_and_claim(
@@ -152,43 +207,13 @@ pub fn create_account_and_claim(
 - Create sub account(`new_new_account`) of sender's account.
 - Call `nft_transfer()` from ``NFT_MINTED_CONTRACT``.
 
-## Getting Started
 
-Clone this repository
-
-```bash
-git clone https://github.com/Meowomen/NEARYou_contract
-cd NEARYou_contract
-```
-
-Compile Contract code
-
-```bash
-cargo build --target wasm32-unknown-unknown --release
-```
-
-Deploy Contract
-
-```jsx
-near deploy --wasmFile target/wasm32-unknown-unknown/release/nearyou.wasm --accountId YOUR_ACCOUNT_HERE
-```
-- Otherwise, you can skip the previous step(Compile) and deploy [``nearyou.wasm``](https://github.com/Meowomen/NEARYou_contract/blob/master/res/nearyou.wasm) directly.
-
-Init Contract
-
-```bash
-near call YOUR_ACCOUNT new '{"nft_contract":"NFT_MINTED_CONTRACT"}' --accountId SIGNER_ACCOUNT
-```
-- ``NFT_MINTED_CONTRACT`` means an account that minted your NFT
-
-After deploying, you can use NEARYou contract with your account id in the [demo page](https://github.com/Meowomen/NEARYou/blob/master/README.md#modify-configjs).
-
-## Suggestions
+## 🧑‍💻 Suggestions
 
 - Update [``createNewAccount``](https://github.com/near/near-wallet/blob/b98294ed8125ca63b6123f56195cc6d35995df37/packages/frontend/src/utils/wallet.js#L409) function in NEAR wallet
 
-``fundingContract`` and ``fundingAccount`` must be included in the drop-link to receive NFT at the same time as account creation through the official wallet. However, if both exist, wallet call the function ``createNewAccountLinkdrop``, which [calls the ``create_account_and_claim``](https://github.com/near/near-wallet/blob/b98294ed8125ca63b6123f56195cc6d35995df37/packages/frontend/src/utils/wallet.js#L489) in the ``fundingContract``. For NEARYou contract to work in the official wallet, both the function name and the number of factors had to be the same. However, we needed the id of the ``NFT_MINTED_CONTRACT`` in ``create_account_and_claim`` [to transfer nft](https://github.com/Meowomen/NEARYou_contract/blob/master/src/lib.rs#L149), so we declared it a global variable through the init function because it shouldn't be hard-coded for scalability. If NEAR wallet flexibly handles account creation with ``fundingAccounts`` and ``fundingContracts``, init function will not be necessary.
+``fundingContract`` and ``fundingAccount`` must be included in the drop-link to receive NFT at the same time as account creation through the official wallet. However, if both exist, wallet call the function ``createNewAccountLinkdrop``, which [calls the ``create_account_and_claim``](https://github.com/near/near-wallet/blob/b98294ed8125ca63b6123f56195cc6d35995df37/packages/frontend/src/utils/wallet.js#L489) in the ``fundingContract``. For NEARYou contract to work in the official wallet, both the function name and the number of factors had to be the same. However, we needed the id of the ``NFT_MINTED_CONTRACT`` in ``create_account_and_claim`` [to transfer nft](https://github.com/Meowomen/NEARYou_contract/blob/master/src/lib.rs#L155), so we declared it a global variable through the init function because it shouldn't be hard-coded for scalability. If NEAR wallet flexibly handles account creation with ``fundingAccounts`` and ``fundingContracts``, init function will not be necessary.
 
 - Support `subaccount creation` in NEAR wallet
 
-This proposal begins with what we did not realize about the signer of the cross-contract call. When calling ``create_account`` of the ``testnet``(official contract) within the NEARYou contract, the top-level-account will be made normally because ``testnet`` signs it, but if ``NEARYou`` signs, only subAccount can be made. We realized this late, so we made subAccount using [a little trick](https://github.com/Meowomen/NEARYou_contract/blob/master/src/lib.rs#L139) because of the naming rules. We will, of course, update the contract later, but adding ``subaccount creation`` feature in official wallet can make NEAR users easily attract others through their own contract so that expand the NEAR ecosystem.
+This proposal begins with what we did not realize about the signer of the cross-contract call. When calling ``create_account`` of the ``testnet``(official contract) within the NEARYou contract, the top-level-account will be made normally because ``testnet`` signs it, but if ``NEARYou`` signs, only subAccount can be made. We realized this late, so we made subAccount using [a little trick](https://github.com/Meowomen/NEARYou_contract/blob/master/src/lib.rs#L144) because of the naming rules. We will, of course, update the contract later, but adding ``subaccount creation`` feature in official wallet can make NEAR users easily attract others through their own contract so that expand the NEAR ecosystem.
