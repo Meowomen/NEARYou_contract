@@ -48,6 +48,7 @@ Init Contract
 near call YOUR_ACCOUNT new '{"nft_contract":"NFT_MINTED_CONTRACT"}' --accountId SIGNER_ACCOUNT
 ```
 - ``NFT_MINTED_CONTRACT`` means an account that minted your NFT
+- If you don't have NFT, you can deploy a minting contract [here](https://github.com/kwklly/NEP171_Factory).
 
 After deploying, you can use NEARYou contract with your account id in the [demo page](https://github.com/Meowomen/NEARYou/blob/master/README.md#modify-configjs).
 
@@ -77,12 +78,14 @@ Receiver, who has NEAR wallet account:
 ### **send()**
 
 ```rust
+/// Map public_key with nft_id & balance to make a promise call.
 #[payable]
     pub fn send(&mut self, public_key: PublicKey, nft_id: String) -> Promise {
         assert!(
             env::attached_deposit() > ACCESS_KEY_ALLOWANCE,
             "Attached deposit must be greater than ACCESS_KEY_ALLOWANCE"
         );
+
         let pk = public_key.into();
         let value = self.accounts.get(&pk).unwrap_or(0);
 
@@ -92,6 +95,7 @@ Receiver, who has NEAR wallet account:
             &(value + env::attached_deposit() - ACCESS_KEY_ALLOWANCE),
         );
 
+        /// Add access key to the contract.
         Promise::new(env::current_account_id()).add_access_key(
             pk,
             ACCESS_KEY_ALLOWANCE,
@@ -109,6 +113,7 @@ Receiver, who has NEAR wallet account:
 ### **claim()**
 
 ```rust
+/// Claim NFT to existing account.
 pub fn claim(&mut self, account_id: AccountId) -> Promise {
         assert_eq!(
             env::predecessor_account_id(),
@@ -147,6 +152,7 @@ pub fn claim(&mut self, account_id: AccountId) -> Promise {
 ### **create_account_and_claim()**
 
 ```rust
+/// Create new account and and claim NFT to it.
 pub fn create_account_and_claim(
         &mut self,
         new_account_id: AccountId,
@@ -166,23 +172,23 @@ pub fn create_account_and_claim(
             .nft_accounts
             .remove(&env::signer_account_pk())
             .expect("Unexpected public key");
-
         let amount = self
             .accounts
             .remove(&env::signer_account_pk())
             .expect("Unexpected public key");
 
+        /// Modify new_account_id from wallet to create subAccount of the sender.
         let nft_contract = format!(".{}", &env::current_account_id());
         let new_new_account_id = new_account_id
             .clone()
             .to_string()
             .replace(".testnet", &nft_contract);
 
+        /// Create subAccount of the sender.
         Promise::new(AccountId::new_unchecked(new_new_account_id.clone()))
             .create_account()
             .add_full_access_key(new_public_key.into())
             .transfer(amount);
-
         Promise::new(self.nft_contract.clone())
             .function_call(
                 (&"nft_transfer").to_string(),
@@ -201,6 +207,7 @@ pub fn create_account_and_claim(
                 ON_CREATE_ACCOUNT_CALLBACK_GAS,
             ))
     }
+
 ```
 
 - Get `amount` and `nft_id` from map.
