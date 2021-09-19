@@ -170,7 +170,7 @@ cargo build --target wasm32-unknown-unknown --release
 Deploy Contract
 
 ```jsx
-near deploy --wasmFile target/wasm32-unknown-unknown/release/rust_counter_tutorial.wasm --accountId YOUR_ACCOUNT_HERE
+near deploy --wasmFile target/wasm32-unknown-unknown/release/nearyou.wasm --accountId YOUR_ACCOUNT_HERE
 ```
 
 Init Contract
