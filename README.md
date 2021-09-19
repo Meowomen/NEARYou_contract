@@ -172,6 +172,7 @@ Deploy Contract
 ```jsx
 near deploy --wasmFile target/wasm32-unknown-unknown/release/nearyou.wasm --accountId YOUR_ACCOUNT_HERE
 ```
+- Otherwise, you can skip the previous step(Compile) and deploy [``nearyou.wasm``](https://github.com/Meowomen/NEARYou_contract/blob/master/res/nearyou.wasm) directly.
 
 Init Contract
 
