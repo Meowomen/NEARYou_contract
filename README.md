@@ -3,7 +3,7 @@
 ## 🗝 Table of Contents
 - [About NEARYou](https://github.com/Meowomen/NEARYou_contract#-about-nearyou)
 - [Getting Started](https://github.com/Meowomen/NEARYou_contract#%EF%B8%8F-getting-started)
-- [How NEARYou Demo Works](https://github.com/Meowomen/NEARYou_contract#-how-nearyou-contract-works)
+- [How NEARYou Contract Works](https://github.com/Meowomen/NEARYou_contract#-how-nearyou-contract-works)
   - [Features](https://github.com/Meowomen/NEARYou_contract#features)
   - [send()](https://github.com/Meowomen/NEARYou_contract#send)
   - [claim()](https://github.com/Meowomen/NEARYou_contract#claim)
