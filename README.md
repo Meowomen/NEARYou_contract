@@ -183,3 +183,12 @@ near call YOUR_ACCOUNT new '{"nft_contract":"NFT_MINTED_CONTRACT"}' --accountId 
 
 After deploying, you can use NEARYou contract with your account id in the [demo page](https://github.com/Meowomen/NEARYou/blob/master/README.md#modify-configjs).
 
+## Suggestions
+
+- Update [``createNewAccount``](https://github.com/near/near-wallet/blob/b98294ed8125ca63b6123f56195cc6d35995df37/packages/frontend/src/utils/wallet.js#L409) function in NEAR wallet
+
+``fundingContract`` and ``fundingAccount`` must be included in the drop-link to receive NFT at the same time as account creation through the official wallet. However, if both exist, wallet call the function ``createNewAccountLinkdrop``, which [calls the ``create_account_and_claim``](https://github.com/near/near-wallet/blob/b98294ed8125ca63b6123f56195cc6d35995df37/packages/frontend/src/utils/wallet.js#L489) in the ``fundingContract``. For NEARYou contract to work in the official wallet, both the function name and the number of factors had to be the same. However, we needed the id of the ``NFT_MINTED_CONTRACT`` in ``create_account_and_claim`` [to transfer nft](https://github.com/Meowomen/NEARYou_contract/blob/master/src/lib.rs#L149), so we declared it a global variable through the init function because it shouldn't be hard-coded for scalability. If NEAR wallet flexibly handles account creation with ``fundingAccounts`` and ``fundingContracts``, init function will not be necessary.
+
+- Support `subaccount creation` in NEAR wallet
+
+This proposal begins with what we did not realize about the signer of the cross-contract call. When calling ``create_account`` of the ``testnet``(official contract) within the NEARYou contract, the top-level-account will be made normally because ``testnet`` signs it, but if ``NEARYou`` signs, only subAccount can be made. We realized this late, so we made subAccount using [a little trick](https://github.com/Meowomen/NEARYou_contract/blob/master/src/lib.rs#L139) because of the naming rules. We will, of course, update the contract later, but adding ``subaccount creation`` feature in official wallet can make NEAR users easily attract others through their own contract so that expand the NEAR ecosystem.
