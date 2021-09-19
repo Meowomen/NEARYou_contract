@@ -1,29 +1,29 @@
 # NEARYou Contract
 ## About NEARYou
 
-NEARYou allows NEAR wallet user(sender) to create link for giving their NFT(Non-Fungible-Token). Their friends(receiver) can claim NFT through the link. NEARYou contract stores sender's NFT's token_id(NFT id) and NEAR for activaing new account to send NFT when receiver requests claim.
+NEARYou allows NEAR wallet users(sender) to create a link for gifting their NFTs(Non-Fungible-Token) which follow [NEP-171](https://github.com/near/NEPs/blob/ea409f07f8/specs/Standards/NonFungibleToken/Core.md) standard. The user's friends(receiver) can claim NFT through the link. NEARYou contract stores the sender's NFT ``token_id`` and minimum amount of NEAR to activate new account.
 
 ## How NEARYou Works
 
-Sender, who has NFT:
+Sender, who owns NFT:
 
 - Call `send` function to create new key pair and store sender's NFT `token_id` and balance.
-- `send` function add access key to give contract authority for moving sender's NFT.
+- `send` function adds an access key to give NEARYou contract authority for moving sender's NFT.
 
 Receiver, who doesn't have NEAR wallet account:
 
 - Call `create_account_and_claim` function of contract with private key.
-- `create_account_and_claim` function calls `create_account` and create sender's subaccount as a receiver's new account.
-- `create_account_and_claim` function calls `nft_transfer` function of NFT-minting contract to give sender's NFT to receiver.
+- `create_account_and_claim` function calls `create_account` and creates the sender's subaccount as a receiver's new account.
+- `create_account_and_claim` function calls `nft_transfer` function of ``NFT_MINTED_CONTRACT``(account that minted NFT) to give sender's NFT to receiver.
 
 Receiver, who has NEAR wallet account:
 
 - Call `claim` function of contract with private key.
-- `claim` function calls `nft_transfer` function of NFT-minting contract to give sender's NFT to receiver.
+- `claim` function calls `nft_transfer` function of ``NFT_MINTED_CONTRACT`` to give sender's NFT to receiver.
 
 ### Code
 
-**send()**
+#### **send()**
 
 ```rust
 #[payable]
@@ -50,10 +50,10 @@ Receiver, who has NEAR wallet account:
     }
 ```
 
-- Inserts public key-NFT_id pair and public key-balance in the accounts, nft_accounts.
-- Make promise and add access key to NEARYou contract.
+- Inserts [public key, nft_id] pair and [public key, amount] pair into the ``accounts``, ``nft_accounts`` respectively.
+- Make promise and add an access key to NEARYou contract.
 
-**claim()**
+#### **claim()**
 
 ```rust
 pub fn claim(&mut self, account_id: AccountId) -> Promise {
@@ -86,10 +86,10 @@ pub fn claim(&mut self, account_id: AccountId) -> Promise {
     }
 ```
 
-- Get `nft_id` from nft_accounts map.
-- Call `nft_transfer()` from nft contract.
+- Get `nft_id` from ``nft_accounts`` map.
+- Call `nft_transfer()` from ``NFT_MINTED_CONTRACT``.
 
-**create_account_and_claim()**
+#### **create_account_and_claim()**
 
 ```rust
 pub fn create_account_and_claim(
@@ -150,7 +150,7 @@ pub fn create_account_and_claim(
 
 - Get `amount` and `nft_id` from map.
 - Create sub account(`new_new_account`) of sender's account.
-- Call `nft_transfer()` from nft contract.
+- Call `nft_transfer()` from ``NFT_MINTED_CONTRACT``.
 
 ## Getting Started
 
@@ -176,11 +176,9 @@ near deploy --wasmFile target/wasm32-unknown-unknown/release/nearyou.wasm --acco
 Init Contract
 
 ```bash
-near call YOUR_ACCOUNT new '{"nft_contract":"NFT_MINTiNG_CONTRACT"}' --accountId SIGNER_ACCOUNT
+near call YOUR_ACCOUNT new '{"nft_contract":"NFT_MINTED_CONTRACT"}' --accountId SIGNER_ACCOUNT
 ```
+- ``NFT_MINTED_CONTRACT`` means an account that minted your NFT
 
-After deploy NEARYou contract, you can use NEARYou contract with your account id in the [demo page](https://github.com/HeesungB/near-drop-demo)
+After deploying, you can use NEARYou contract with your account id in the [demo page](https://github.com/Meowomen/NEARYou/blob/master/README.md#modify-configjs).
 
-## Suggestion
-
-We suggest adding `making subaccount` menu in the NEAR web wallet. In NEAR protocol, newly created account must be under a namespace of the creator account however, NEAR official wallet has not the create subaccount menu. Adding create subaccount feature can make NEAR users easily attract others through their own contract so that expand the NEAR ecosystem.
