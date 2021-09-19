@@ -179,7 +179,7 @@ Init Contract
 near call YOUR_ACCOUNT new '{"nft_contract":"NFT_MINTiNG_CONTRACT"}' --accountId SIGNER_ACCOUNT
 ```
 
-After deploy NEARYou contract, you can use NEARYou contract with your account id in the [demo page]()
+After deploy NEARYou contract, you can use NEARYou contract with your account id in the [demo page](https://github.com/HeesungB/near-drop-demo)
 
 ## Suggestion
 
